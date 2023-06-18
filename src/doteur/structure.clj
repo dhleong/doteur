@@ -1,7 +1,8 @@
 (ns doteur.structure
   (:require
    [clojure.java.io :as io]
-   [clojure.string :as str])
+   [clojure.string :as str]
+   [doteur.config :as config])
   (:import
    (java.io File)
    (java.nio.file Files)))
@@ -59,41 +60,46 @@
                         (next remaining-path)
                         (conj at-path segment)))))))
 
-(defn build-fs-at-file
-  ([^File root-file]
-   (build-fs-at-file root-file (file->path root-file)))
-  ([^File root-file, root]
-   (let [root-len (count root)]
-     (if (directory? root-file)
-       (->> (non-symlinked-file-seq root-file)
-            (remove directory?)
+(defn build-fs-at-file [config ^File root-file]
+  (let [{:keys [root ignored?]
+         :or {root (file->path root-file)
+              ignored? (constantly false)}} config
+        root-len (count root)]
+    (if (directory? root-file)
+      (->> (non-symlinked-file-seq root-file)
+           (remove directory?)
+           (remove ignored?)
 
-            (reduce
-              (fn [m file]
-                (let [full-path (file->path file)]
-                  (if (in-disallow-list? full-path)
-                    m
-                    (let [relative-path (subvec full-path root-len)]
-                      (try
-                        (assoc-in m relative-path (type-of-file file))
-                        (catch IllegalArgumentException e
-                          (debug-vector-overwrite m relative-path file)
-                          (throw e)))))))
-              {}))
+           (reduce
+             (fn [m file]
+               (let [full-path (file->path file)]
+                 (if (in-disallow-list? full-path)
+                   m
+                   (let [relative-path (subvec full-path root-len)]
+                     (try
+                       (assoc-in m relative-path (type-of-file file))
+                       (catch IllegalArgumentException e
+                         (debug-vector-overwrite m relative-path file)
+                         (throw e)))))))
+             {}))
 
-       (type-of-file root-file)))))
+      (type-of-file root-file))))
 
-(defn collect-at-path [path]
-  (->> (io/file path)
-       (.listFiles)
-       (filter directory?)
-       (pmap
-         (fn [root-file]
-           (let [root-path (file->path root-file)]
-             (when-not (in-disallow-list? root-path)
-               {:root root-path
-                :fs (build-fs-at-file root-file)}))))
-       (keep identity)))
+(defn collect-at-path [{:keys [ignored-file-patterns]} path]
+  (let [ignored? (config/build-is-ignored ignored-file-patterns)
+        config {:ignored? ignored?}]
+    ; TODO We respect local .dotignore files
+    (->> (io/file path)
+         (.listFiles)
+         (filter directory?)
+         (remove ignored?)
+         (pmap
+           (fn [root-file]
+             (let [root-path (file->path root-file)]
+               (when-not (in-disallow-list? root-path)
+                 {:root root-path
+                  :fs (build-fs-at-file config root-file)}))))
+         (keep identity))))
 
 (defn build-relevant-at-file [source-structures target-root-file]
   (let [relevant-root-dirs (->> source-structures
@@ -104,8 +110,8 @@
                      (fn [root-dir-name]
                        [root-dir-name
                         (build-fs-at-file
-                          (io/file target-root-file root-dir-name)
-                          (conj (file->path target-root-file) root-dir-name))]))
+                          {:root (conj (file->path target-root-file) root-dir-name)}
+                          (io/file target-root-file root-dir-name))]))
                    (filter (fn [[_root-dir-name fs]]
                              (some? fs))))]
     {:root (file->path target-root-file)
@@ -114,8 +120,9 @@
 
 (comment
   (def dotfiles (collect-at-path
-                   (io/file (System/getenv "HOME")
-                            ".dotfiles")))
+                  {}
+                  (io/file (System/getenv "HOME")
+                           ".dotfiles")))
 
   (def destination (build-relevant-at-file
                      dotfiles

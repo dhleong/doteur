@@ -1,0 +1,12 @@
+# List of case-insensitive file regex patterns to be ignored, not copied
+readme.*
+news
+licence
+license
+changelog.*
+.gitignore
+tags
+.gitmodules
+.*\.sw.
+.gitattributes
+

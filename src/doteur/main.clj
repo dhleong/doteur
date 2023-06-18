@@ -3,6 +3,7 @@
   (:require
    [clojure.java.io :as io]
    [clojure.pprint :as pprint]
+   [doteur.config :as config]
    [doteur.reconcile :as reconcile]
    [doteur.structure :as structure]))
 
@@ -11,7 +12,11 @@
         structures-dir (if (seq args)
                          (first args)
                          (io/file home-dir ".dotfiles"))
-        structures (structure/collect-at-path structures-dir)
+        base-ignored-patterns (config/ignored-file-patterns
+                                structures-dir)
+        config {:ignored-file-patterns base-ignored-patterns}
+
+        structures (structure/collect-at-path config structures-dir)
         destination (structure/build-relevant-at-file
                       structures
                       (io/file home-dir))
