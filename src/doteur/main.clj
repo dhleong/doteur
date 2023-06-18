@@ -3,6 +3,7 @@
   (:require
    [clojure.java.io :as io]
    [clojure.pprint :as pprint]
+   [doteur.actions :as actions]
    [doteur.config :as config]
    [doteur.reconcile :as reconcile]
    [doteur.structure :as structure]))
@@ -15,12 +16,17 @@
         base-ignored-patterns (config/ignored-file-patterns
                                 structures-dir)
         config {:ignored-file-patterns base-ignored-patterns}
+        destination-dir (io/file home-dir)
 
         structures (structure/collect-at-path config structures-dir)
         destination (structure/build-relevant-at-file
                       structures
-                      (io/file home-dir))
-        reconciled-state (reconcile/reconcile
+                      destination-dir)
+        reconciled-fs (reconcile/reconcile
                            (cons (assoc destination :destination? true)
-                                 structures))]
-    (pprint/pprint reconciled-state)))
+                                 structures))
+        actions (actions/resolve-actions
+                  {:destination-fs (:fs destination)
+                   :reconciled-fs reconciled-fs
+                   :structures structures})]
+    (pprint/pprint actions)))
