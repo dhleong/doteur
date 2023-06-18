@@ -65,4 +65,15 @@
 
               {:root ["spop"]
                :fs {"characters" {"catra" [:file]
-                                  "heroes" {"she-ra" [:file]}}}}])))))
+                                  "heroes" {"she-ra" [:file]}}}}]))))
+
+  (testing "Handle when a link already exists in the destination"
+    (is (= {"characters" {"amity" [:link ["owl-house" "characters" "amity"]]}}
+
+           (reconcile
+             [{:root ["destination"]
+               :destination? true
+               :fs {"characters" {"amity" [:link "owl-house" "characters" "amity"]}}}
+
+              {:root ["owl-house"]
+               :fs {"characters" {"amity" [:file]}}}])))))

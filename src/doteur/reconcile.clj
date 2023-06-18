@@ -65,7 +65,7 @@
                                                     (= :link (first next-file)))))))]
                (cond
                  ; Happy case:
-                 (<= (count owners) 1)
+                 (<= (count owned-structures) 1)
                  (assoc unified file (if (= root destination-root)
                                        [:file] ; Leave the file
                                        [:link (conj root file)]))
