@@ -14,36 +14,74 @@
   (some directory-disallow-list file-path))
 
 (defn- directory? [^File file]
-  (.isDirectory file))
+  (and (.isDirectory file)
+       (not (Files/isSymbolicLink (.toPath file)))))
+
+(defn- non-symlinked-file-seq [dir]
+  ; The default file-seq follows symlinks; we want to leave
+  ; symlinks in-place, as-is!
+  (tree-seq
+    directory?
+    (fn [^File d] (seq (.listFiles d)))
+    dir))
 
 (defn- file->path [^File file]
   (-> file
-      (.getAbsoluteFile)
-      (.getCanonicalPath)
+      (.toPath)
+      (.toAbsolutePath)
+      (.normalize)
+      (.toString)
       (str/split file-separator-regex)))
 
 (defn- type-of-file [^File f]
-  (let [p (.toPath f)]
-    (if (Files/isSymbolicLink p)
-      [:link (->> (Files/readSymbolicLink p)
-                  (.toFile)
-                  (file->path))]
+  (when (.exists f)
+    (let [p (.toPath f)]
+      (if (Files/isSymbolicLink p)
+        [:link (->> (Files/readSymbolicLink p)
+                    (.toFile)
+                    (file->path))]
 
-      [:file])))
+        [:file]))))
 
-(defn build-fs-at-file [^File root-file]
-  (let [root (file->path root-file)
-        root-len (count root)]
-    (->> (file-seq root-file)
-         (remove directory?)
-         (reduce
-           (fn [m file]
-             (let [full-path (file->path file)]
-               (if (in-disallow-list? full-path)
-                 m
-                 (let [relative-path (subvec full-path root-len)]
-                   (assoc-in m relative-path (type-of-file file))))))
-           {}))))
+(defn- debug-vector-overwrite [m relative-path file]
+  (println "Overwriting file in " relative-path ";"
+           "actual file=" (.getAbsolutePath file) "; "
+           "want to set " (type-of-file file))
+  (println (loop [m m
+                  remaining-path relative-path
+                  at-path []]
+             (let [segment (first remaining-path)
+                   v (get m segment)]
+               (if (vector? v)
+                 (println "Value at " (conj at-path segment)
+                          "= " v)
+                 (recur v
+                        (next remaining-path)
+                        (conj at-path segment)))))))
+
+(defn build-fs-at-file
+  ([^File root-file]
+   (build-fs-at-file root-file (file->path root-file)))
+  ([^File root-file, root]
+   (let [root-len (count root)]
+     (if (directory? root-file)
+       (->> (non-symlinked-file-seq root-file)
+            (remove directory?)
+
+            (reduce
+              (fn [m file]
+                (let [full-path (file->path file)]
+                  (if (in-disallow-list? full-path)
+                    m
+                    (let [relative-path (subvec full-path root-len)]
+                      (try
+                        (assoc-in m relative-path (type-of-file file))
+                        (catch IllegalArgumentException e
+                          (debug-vector-overwrite m relative-path file)
+                          (throw e)))))))
+              {}))
+
+       (type-of-file root-file)))))
 
 (defn collect-at-path [path]
   (->> (io/file path)
@@ -51,5 +89,45 @@
        (filter directory?)
        (pmap
          (fn [root-file]
-           {:root (file->path root-file)
-            :fs (build-fs-at-file root-file)}))))
+           (let [root-path (file->path root-file)]
+             (when-not (in-disallow-list? root-path)
+               {:root root-path
+                :fs (build-fs-at-file root-file)}))))
+       (keep identity)))
+
+(defn build-relevant-at-file [source-structures target-root-file]
+  (let [relevant-root-dirs (->> source-structures
+                                (mapcat (comp keys :fs))
+                                (into #{}))
+        files (->> relevant-root-dirs
+                   (pmap
+                     (fn [root-dir-name]
+                       [root-dir-name
+                        (build-fs-at-file
+                          (io/file target-root-file root-dir-name)
+                          (conj (file->path target-root-file) root-dir-name))]))
+                   (filter (fn [[_root-dir-name fs]]
+                             (some? fs))))]
+    {:root (file->path target-root-file)
+     :fs (into {} files)}))
+
+
+(comment
+  (def dotfiles (collect-at-path
+                   (io/file (System/getenv "HOME")
+                            ".dotfiles")))
+
+  (def destination (build-relevant-at-file
+                     dotfiles
+                     (io/file (System/getenv "HOME"))))
+
+  (dissoc (get-in destination [:fs ".config"]) "gcloud")
+
+  (->> (keys (:fs destination))
+       (map (fn [root-name]
+              {:name root-name
+               :value (let [v (get-in destination [:fs root-name])]
+                        (if (map? v)
+                          [:directory (keys v)]
+                          v))}))
+       #_(clojure.pprint/pprint)))
