@@ -43,4 +43,26 @@
 
               {:root ["spop"]
                :fs {"characters" {"catra" [:file]}
-                    "princesses" {"she-ra" [:file]}}}])))))
+                    "princesses" {"she-ra" [:file]}}}]))))
+
+  (testing "Inflate an existing link into a directory when needed"
+    (is (= {"characters"
+            {"amity" [:file]
+             "catra" [:link ["spop" "characters" "catra"]]
+             "heroes" {"she-ra" [:link ["spop" "characters"
+                                        "heroes" "she-ra"]]
+                       "kipo" [:link ["kipo" "characters"
+                                      "heroes" "kipo"]]}}}
+
+           (reconcile
+             [{:root ["destination"]
+               :destination? true
+               :fs {"characters" {"amity" [:file]
+                                  "heroes" [:link ["spop" "characters" "heroes"]]}}}
+
+              {:root ["kipo"]
+               :fs {"characters" {"heroes" {"kipo" [:file]}}}}
+
+              {:root ["spop"]
+               :fs {"characters" {"catra" [:file]
+                                  "heroes" {"she-ra" [:file]}}}}])))))

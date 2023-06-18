@@ -29,6 +29,14 @@
                        " (directory)"))))
             (str/join ", "))))
 
+(defn- enter-file [structure file]
+  (-> structure
+      (update :root conj file)
+      (update :fs get file)))
+
+(defn- enter-file-n [file structures]
+  (keep #(enter-file % file) structures))
+
 (defn reconcile
   "Given a collection of structures, 'unify' them with the minimal, shared
    set of folders."
@@ -42,7 +50,20 @@
          files-with-root
          (reduce
            (fn [unified [file root]]
-             (let [owners (get directories->owners file)]
+             (let [owners (get directories->owners file)
+                   owned-structures (->> structures
+                                         (filter
+                                           (fn [{:keys [root]}]
+                                             (some (partial = root) owners)))
+                                         ; If the destination is a link,
+                                         ; we can ignore it
+                                         (remove
+                                           (fn [{:keys [fs destination?]}]
+                                             (let [next-file (get fs file)]
+                                               (and destination?
+                                                    (vector? next-file)
+                                                    (= :link (first next-file))))))
+                                         doall)]
                (cond
                  ; Happy case:
                  (<= (count owners) 1)
@@ -51,17 +72,18 @@
                                        [:link (conj root file)]))
 
                  ; Reconcile!
+                 (every? #(map? (get-in % [:fs file])) owned-structures)
+                 (assoc unified file (->> owned-structures
+                                          (enter-file-n file)
+                                          reconcile))
+
+                 ; TODO If the only collision is because the destination
+                 ; has a link... that's okay!
+
+                 ; Otherwise, there's a collision that we can't handle
                  :else
-                 (let [to-reconcile
-                       (->> structures
-                            (filter (fn [{:keys [root]}]
-                                      (some (partial = root) owners)))
-                            (keep (fn [structure]
-                                    (-> structure
-                                        (update :root conj file)
-                                        (update :fs get file)))))]
-                   (when (some (comp vector? :fs) to-reconcile)
-                     (throw (ex-info (describe-collision to-reconcile)
-                                     {})))
-                   (assoc unified file (reconcile to-reconcile))))))
+                 (throw (ex-info (describe-collision
+                                   (->> owned-structures
+                                        (enter-file-n file)))
+                                 {})))))
            {}))))
