@@ -62,8 +62,7 @@
                                              (let [next-file (get fs file)]
                                                (and destination?
                                                     (vector? next-file)
-                                                    (= :link (first next-file))))))
-                                         doall)]
+                                                    (= :link (first next-file)))))))]
                (cond
                  ; Happy case:
                  (<= (count owners) 1)
@@ -76,9 +75,6 @@
                  (assoc unified file (->> owned-structures
                                           (enter-file-n file)
                                           reconcile))
-
-                 ; TODO If the only collision is because the destination
-                 ; has a link... that's okay!
 
                  ; Otherwise, there's a collision that we can't handle
                  :else
