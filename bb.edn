@@ -1,0 +1,13 @@
+{:paths ["src" "test"]
+
+ :bbin/bin {doteur {:main-opts ["-m" "doteur.main"]}}
+
+ :tasks
+ {doteur {:doc "Run in place"
+          :task doteur.main/-main}
+
+  package {:doc "Package a single uberjar"
+           :task (shell "bb uberjar doteur -m doteur.main")}
+
+  test {:doc "Run all tests"
+        :task (shell "clj -X:test")}}}
