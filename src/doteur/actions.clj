@@ -56,7 +56,8 @@
                  [:link path (second file-type)])))))
 
 (defn resolve-actions [{:keys [destination-fs reconciled-fs structures]}]
-  (let [[only-in-destination only-in-reconciled] (diff destination-fs reconciled-fs)]
+  (let [[only-in-destination only-in-reconciled] (diff destination-fs
+                                                       reconciled-fs)]
     (concat
       (select-delete-actions structures only-in-destination)
       (select-link-actions only-in-reconciled))))

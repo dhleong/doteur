@@ -22,5 +22,40 @@
                                                       "catra"]]}}
               :structures [{:root ["spop"]}]}))))
 
-  (testing "Leave unmanaged files alone"))
+  (testing "Leave unmanaged files alone"
+    (is (empty?
+          (resolve-actions
+            {:destination-fs {"characters" {"amity" [:file]
+                                            "catra" [:link
+                                                     ["spop"
+                                                      "characters"
+                                                      "catra"]]
+                                            "kipo" [:link
+                                                     [""
+                                                      "kipo"]]}}
+             :reconciled-fs {"characters" {"catra" [:link
+                                                    ["spop"
+                                                     "characters"
+                                                     "catra"]]}}
+             :structures [{:root ["spop"]}]}))))
+
+  (testing "Expand link into directory"
+    (is (= [[:delete ["characters"]]
+            [:link ["characters" "catra"]
+             ["spop" "characters" "catra"]]
+            [:link ["characters" "amity"]
+             ["owl-house" "characters" "amity"]]]
+
+           (resolve-actions
+             {:destination-fs {"characters" [:link ["spop" "characters"]]}
+              :reconciled-fs {"characters" {"catra" [:link
+                                                     ["spop"
+                                                      "characters"
+                                                      "catra"]]
+                                            "amity" [:link
+                                                     ["owl-house"
+                                                      "characters"
+                                                      "amity"]]}}
+              :structures [{:root ["owl-house"]}
+                           {:root ["spop"]}]})))))
 
