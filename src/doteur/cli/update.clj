@@ -56,8 +56,8 @@
                       structures
                       destination-dir)
         reconciled-fs (reconcile/reconcile
-                           (cons (assoc destination :destination? true)
-                                 structures))
+                        (cons (assoc destination :destination? true)
+                              structures))
         actions (actions/resolve-actions
                   {:destination-fs (:fs destination)
                    :reconciled-fs reconciled-fs
