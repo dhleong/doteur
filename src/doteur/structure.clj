@@ -88,11 +88,17 @@
 (defn collect-at-path [{:keys [ignored-file-patterns]} path]
   (let [ignored? (config/build-is-ignored ignored-file-patterns)
         config {:ignored? ignored?}]
-    ; TODO We respect local .dotignore files
+    ; TODO We should respect local .dotignore files
     (->> (io/file path)
          (.listFiles)
          (filter directory?)
          (remove ignored?)
+
+         ; Only select subdirs that have been git-cloned in
+         ; TODO This may not be necessary...
+         (filter (fn [directory]
+                   (.exists (io/file directory ".git"))))
+
          (pmap
            (fn [root-file]
              (let [root-path (file->path root-file)]
