@@ -7,7 +7,8 @@
    [doteur.reconcile :as reconcile]
    [doteur.structure :as structure :refer [path->file]])
   (:import
-   (java.nio.file Files)))
+   (java.nio.file Files)
+   (java.nio.file.attribute FileAttribute)))
 
 (defn describe-action [[action-type path alt-path]]
   (case action-type
@@ -26,7 +27,8 @@
     :delete (io/delete-file path)
     :link (Files/createSymbolicLink
             (.toPath (io/file path))
-            (.toPath (io/file alt-path)))))
+            (.toPath (io/file alt-path))
+            (make-array FileAttribute 0))))
 
 (defn- inflate-dest-path [destination-dir path]
   (.getAbsolutePath
@@ -65,11 +67,15 @@
     (when dry-run
       (print-formatted [:yellow "*** THIS IS A DRY RUN ***"]))
 
-    (doseq [action actions]
-      (print-formatted (describe-action action))
+    (if (seq actions)
+      (doseq [action actions]
+        (print-formatted (describe-action action))
 
-      (when-not dry-run
-        (perform-action action)))
+        (when-not dry-run
+          (perform-action action)))
+
+      (print-formatted
+        [:green "🎉 Up to date! 🎉"]))
 
     (when dry-run
       (print-formatted [:yellow "*** THIS WAS A DRY RUN ***"]))))
