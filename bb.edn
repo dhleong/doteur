@@ -1,4 +1,4 @@
-{:paths ["src" "test"]
+{:paths ["src" "test" "resources"]
 
  :bbin/bin {doteur {:main-opts ["-m" "doteur.main"]}}
 
@@ -11,7 +11,7 @@
   lint (shell "clj-kondo --lint .")
 
   package {:doc "Package a single uberjar"
-           :task (shell "bb uberjar doteur -m doteur.main")}
+           :task (shell "bb uberjar doteur.jar -m doteur.main")}
 
   test {:doc "Run all tests"
         :task (shell "clojure -X:test")}}}
