@@ -63,6 +63,17 @@
                         (next remaining-path)
                         (conj at-path segment)))))))
 
+(defn- assoc-file-in-fs [root-len m file]
+  (let [full-path (file->path file)]
+    (if (in-disallow-list? full-path)
+      m
+      (let [relative-path (subvec full-path root-len)]
+        (try
+          (assoc-in m relative-path (type-of-file file))
+          (catch IllegalArgumentException e
+            (debug-vector-overwrite m relative-path file)
+            (throw e)))))))
+
 (defn build-fs-at-file [config ^File root-file]
   (let [{:keys [root ignored?]
          :or {root (file->path root-file)
@@ -72,18 +83,8 @@
       (->> (non-symlinked-file-seq root-file)
            (remove directory?)
            (remove ignored?)
-
            (reduce
-             (fn [m file]
-               (let [full-path (file->path file)]
-                 (if (in-disallow-list? full-path)
-                   m
-                   (let [relative-path (subvec full-path root-len)]
-                     (try
-                       (assoc-in m relative-path (type-of-file file))
-                       (catch IllegalArgumentException e
-                         (debug-vector-overwrite m relative-path file)
-                         (throw e)))))))
+             (partial assoc-file-in-fs root-len)
              {}))
 
       (type-of-file root-file))))
