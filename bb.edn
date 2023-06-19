@@ -12,4 +12,4 @@
            :task (shell "bb uberjar doteur -m doteur.main")}
 
   test {:doc "Run all tests"
-        :task (shell "clj -X:test")}}}
+        :task (shell "clojure -X:test")}}}
