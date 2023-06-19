@@ -34,6 +34,9 @@
       (.toString)
       (str/split file-separator-regex)))
 
+(defn path->file [path]
+  (str/join File/separator path))
+
 (defn- type-of-file [^File f]
   (when (.exists f)
     (let [p (.toPath f)]

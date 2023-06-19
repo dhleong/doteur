@@ -2,6 +2,8 @@
 
  :bbin/bin {doteur {:main-opts ["-m" "doteur.main"]}}
 
+ :deps {io.aviso/pretty {:mvn/version "1.4.3"}}
+
  :tasks
  {doteur {:doc "Run in place"
           :task doteur.main/-main}

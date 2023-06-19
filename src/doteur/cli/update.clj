@@ -1,11 +1,50 @@
 (ns doteur.cli.update
   (:require
    [clojure.java.io :as io]
-   [clojure.pprint :as pprint]
    [doteur.actions :as actions]
    [doteur.config :as config]
    [doteur.reconcile :as reconcile]
-   [doteur.structure :as structure]))
+   [doteur.structure :as structure :refer [path->file]]
+   [io.aviso.ansi :as ansi])
+  (:import
+   (java.nio.file Files)))
+
+(defn print-formatted [v]
+  #_{:clj-kondo/ignore [:unresolved-var]}
+  (println (ansi/compose v)))
+
+(defn describe-action [[action-type path alt-path]]
+  (case action-type
+    :delete [:plain
+             [:red-bg (name action-type)]
+             " "
+             path]
+
+    :link [:plain
+           [:cyan-bg.black (name action-type)]
+           " "
+           path [:cyan " -> "] alt-path]))
+
+(defn- perform-action [[action-type path alt-path]]
+  (case action-type
+    :delete (io/delete-file path)
+    :link (Files/createSymbolicLink
+            (.toPath (io/file path))
+            (.toPath (io/file alt-path)))))
+
+(defn- inflate-dest-path [destination-dir path]
+  (.getAbsolutePath
+    (io/file
+      destination-dir
+      (path->file path))))
+
+(defn- inflate-actions [destination-dir actions]
+  (map (fn [[action-type path alt-path]]
+         (let [path (inflate-dest-path destination-dir path)]
+           (case action-type
+             :delete [:delete path]
+             :link [:link path (path->file alt-path)])))
+       actions))
 
 (defn command [{{:keys [dry-run]} :opts}]
   (let [home-dir (System/getenv "HOME")
@@ -25,10 +64,14 @@
         actions (actions/resolve-actions
                   {:destination-fs (:fs destination)
                    :reconciled-fs reconciled-fs
-                   :structures structures})]
+                   :structures structures})
+        actions (inflate-actions destination-dir actions)]
 
-    (if dry-run
-      (pprint/pprint actions)
+    (when dry-run
+      (print-formatted [:yellow "*** THIS IS A DRY RUN ***"]))
 
-      ; TODO
-      (println actions))))
+    (doseq [action actions]
+      (print-formatted (describe-action action))
+
+      (when-not dry-run
+        (perform-action action)))))
