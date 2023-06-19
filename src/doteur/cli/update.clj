@@ -13,12 +13,12 @@
 (defn describe-action [[action-type path alt-path]]
   (case action-type
     :delete [:plain
-             [:red-bg (name action-type)]
+             [:red-bg "  RM  "]
              " "
              path]
 
     :link [:plain
-           [:cyan-bg.black (name action-type)]
+           [:cyan-bg.black " LINK "]
            " "
            path [:cyan " -> "] alt-path]))
 

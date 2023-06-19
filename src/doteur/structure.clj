@@ -38,13 +38,13 @@
   (str/join File/separator path))
 
 (defn- type-of-file [^File f]
-  (when (.exists f)
-    (let [p (.toPath f)]
-      (if (Files/isSymbolicLink p)
-        [:link (->> (Files/readSymbolicLink p)
-                    (.toFile)
-                    (file->path))]
+  (let [p (.toPath f)]
+    (if (Files/isSymbolicLink p)
+      [:link (->> (Files/readSymbolicLink p)
+                  (.toFile)
+                  (file->path))]
 
+      (when (.exists f)
         [:file]))))
 
 (defn- debug-vector-overwrite [m relative-path file]
