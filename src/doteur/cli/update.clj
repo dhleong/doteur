@@ -2,16 +2,12 @@
   (:require
    [clojure.java.io :as io]
    [doteur.actions :as actions]
+   [doteur.cli.util :refer [print-formatted]]
    [doteur.config :as config]
    [doteur.reconcile :as reconcile]
-   [doteur.structure :as structure :refer [path->file]]
-   [io.aviso.ansi :as ansi])
+   [doteur.structure :as structure :refer [path->file]])
   (:import
    (java.nio.file Files)))
-
-(defn print-formatted [v]
-  #_{:clj-kondo/ignore [:unresolved-var]}
-  (println (ansi/compose v)))
 
 (defn describe-action [[action-type path alt-path]]
   (case action-type

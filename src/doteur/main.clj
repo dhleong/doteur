@@ -4,6 +4,7 @@
    [babashka.cli :as cli]
    [clojure.java.io :as io]
    [clojure.string :as str]
+   [doteur.cli.add :as add]
    [doteur.cli.update :as update]))
 
 (def ^:private default-home (System/getenv "HOME"))
@@ -29,14 +30,16 @@
 Usage: doteur <subcommand> <options>
 
 Subcommands:
-  update   Synchronize .dotfiles directories
+  add <git-uri>  Install an environment (via git)
+  update         Synchronize .dotfiles directories
 
 Options:
 ")
            (str "\n" (cli/format-opts {:spec args-spec}))))
 
 (def ^:private commands
-  [{:cmds ["update"] :fn update/command}
+  [{:cmds ["add"] :fn add/command :args->opts [:uri]}
+   {:cmds ["update"] :fn update/command}
    {:cmds []
     :fn print-help}])
 
