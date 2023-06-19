@@ -6,8 +6,10 @@
  {doteur {:doc "Run in place"
           :task doteur.main/-main}
 
+  lint (shell "clj-kondo --lint .")
+
   package {:doc "Package a single uberjar"
            :task (shell "bb uberjar doteur -m doteur.main")}
 
   test {:doc "Run all tests"
-        :task (shell "clj -X:test")}}}
+        :task (shell "clojure -X:test")}}}
