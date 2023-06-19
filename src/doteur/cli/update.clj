@@ -46,9 +46,8 @@
              :link [:link path (path->file alt-path)])))
        actions))
 
-(defn command [{{:keys [dry-run]} :opts}]
-  (let [home-dir (System/getenv "HOME")
-        structures-dir (io/file home-dir ".dotfiles")
+(defn command [{{:keys [home-dir envs-dir dry-run]} :opts}]
+  (let [structures-dir (io/file envs-dir)
         base-ignored-patterns (config/ignored-file-patterns
                                 structures-dir)
         config {:ignored-file-patterns base-ignored-patterns}
@@ -74,4 +73,7 @@
       (print-formatted (describe-action action))
 
       (when-not dry-run
-        (perform-action action)))))
+        (perform-action action)))
+
+    (when dry-run
+      (print-formatted [:yellow "*** THIS WAS A DRY RUN ***"]))))
