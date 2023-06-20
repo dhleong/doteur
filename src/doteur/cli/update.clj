@@ -25,10 +25,18 @@
 (defn- perform-action [[action-type path alt-path]]
   (case action-type
     :delete (io/delete-file path)
-    :link (Files/createSymbolicLink
-            (.toPath (io/file path))
-            (.toPath (io/file alt-path))
-            (make-array FileAttribute 0))))
+    :link (let [file (io/file path)
+                directory (.getParentFile file)]
+            ; Make any missing intermediate directories. It'd be nice for this
+            ; to be a separate action, but this is simple and quick enough
+            (when-not (.isDirectory directory)
+              (.mkdirs directory))
+
+            ; Link in the file
+            (Files/createSymbolicLink
+              (.toPath file)
+              (.toPath (io/file alt-path))
+              (make-array FileAttribute 0)))))
 
 (defn- inflate-dest-path [destination-dir path]
   (.getAbsolutePath
