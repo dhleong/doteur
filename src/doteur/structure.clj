@@ -9,7 +9,7 @@
 
 (def ^:private file-separator-regex (re-pattern File/separator))
 
-(def ^:private directory-disallow-list #{".git"})
+(def ^:private directory-disallow-list #{".git" ".cache"})
 
 (defn- in-disallow-list? [file-path]
   (some directory-disallow-list file-path))
@@ -22,9 +22,9 @@
   ; The default file-seq follows symlinks; we want to leave
   ; symlinks in-place, as-is!
   (tree-seq
-    directory?
-    (fn [^File d] (seq (.listFiles d)))
-    dir))
+   directory?
+   (fn [^File d] (seq (.listFiles d)))
+   dir))
 
 (defn- file->path [^File file]
   (-> file
@@ -84,8 +84,8 @@
            (remove directory?)
            (remove ignored?)
            (reduce
-             (partial assoc-file-in-fs root-len)
-             {}))
+            (partial assoc-file-in-fs root-len)
+            {}))
 
       (type-of-file root-file))))
 
@@ -104,11 +104,11 @@
                    (.exists (io/file directory ".git"))))
 
          (pmap
-           (fn [root-file]
-             (let [root-path (file->path root-file)]
-               (when-not (in-disallow-list? root-path)
-                 {:root root-path
-                  :fs (build-fs-at-file config root-file)}))))
+          (fn [root-file]
+            (let [root-path (file->path root-file)]
+              (when-not (in-disallow-list? root-path)
+                {:root root-path
+                 :fs (build-fs-at-file config root-file)}))))
          (keep identity))))
 
 (defn build-relevant-at-file [source-structures target-root-file]
@@ -117,26 +117,25 @@
                                 (into #{}))
         files (->> relevant-root-dirs
                    (pmap
-                     (fn [root-dir-name]
-                       [root-dir-name
-                        (build-fs-at-file
-                          {:root (conj (file->path target-root-file) root-dir-name)}
-                          (io/file target-root-file root-dir-name))]))
+                    (fn [root-dir-name]
+                      [root-dir-name
+                       (build-fs-at-file
+                        {:root (conj (file->path target-root-file) root-dir-name)}
+                        (io/file target-root-file root-dir-name))]))
                    (filter (fn [[_root-dir-name fs]]
                              (some? fs))))]
     {:root (file->path target-root-file)
      :fs (into {} files)}))
 
-
 (comment
   (def dotfiles (collect-at-path
-                  {}
-                  (io/file (System/getenv "HOME")
-                           ".dotfiles")))
+                 {}
+                 (io/file (System/getenv "HOME")
+                          ".dotfiles")))
 
   (def destination (build-relevant-at-file
-                     dotfiles
-                     (io/file (System/getenv "HOME"))))
+                    dotfiles
+                    (io/file (System/getenv "HOME"))))
 
   (dissoc (get-in destination [:fs ".config"]) "gcloud")
 
