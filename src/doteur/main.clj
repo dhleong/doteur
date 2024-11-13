@@ -12,14 +12,14 @@
 (def args-spec {:envs-dir {:desc "Where to add/search for environments"
                            :ref "<path>"
                            :default (.getAbsolutePath
-                                      (io/file default-home ".dotfiles"))
+                                     (io/file default-home ".dotfiles"))
                            :default-desc "$HOME/.dotfiles"}
                 :home-dir {:desc "Where dotfiles get linked"
                            :ref "<path>"
                            :default default-home
                            :default-desc "$HOME"}
                 :dry-run {:desc "Don't touch the filesystem"
-                          :alias :dry
+                          :alias :d
                           :coerce :boolean}
                 :help {:desc "Print this help"
                        :alias :h
