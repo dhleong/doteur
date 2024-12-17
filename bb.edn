@@ -2,7 +2,9 @@
 
  :bbin/bin {doteur {:main-opts ["-m" "doteur.main"]}}
 
- :deps {io.aviso/pretty {:mvn/version "1.4.3"}}
+ ; Use deps from deps.edn
+ ; bbin only picks up deps.edn dependencies...
+ :deps {io.github.dhleong/doteur {:local/root "."}}
 
  :tasks
  {doteur {:doc "Run in place"
