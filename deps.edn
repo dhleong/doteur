@@ -1,8 +1,9 @@
-{:paths ["src"]
+{:paths ["src" "test"]
 
- :deps {io.aviso/pretty {:mvn/version "1.4.3"}}
+ :deps {io.aviso/pretty {:mvn/version "1.4.3"}
+        babashka/process {:mvn/version "0.6.23"}}
 
- :aliases {:test {:extra-paths ["test"]
+ :aliases {:test {
                   :extra-deps {io.github.cognitect-labs/test-runner
                                {:git/tag "v0.5.1" :git/sha "dfb30dd"}}
                   :main-opts ["-m" "cognitect.test-runner"]
