@@ -11,23 +11,23 @@
             "princesses" [:link ["spop" "princesses"]]}
 
            (reconcile
-             [{:root ["owl-house"]
-               :fs {"characters" {"amity" [:file]}
-                    "houses" {"owl" [:file]}}}
+            [{:root ["owl-house"]
+              :fs {"characters" {"amity" [:file]}
+                   "houses" {"owl" [:file]}}}
 
-              {:root ["spop"]
-               :fs {"characters" {"catra" [:file]}
-                    "princesses" {"she-ra" [:file]}}}]))))
+             {:root ["spop"]
+              :fs {"characters" {"catra" [:file]}
+                   "princesses" {"she-ra" [:file]}}}]))))
 
   (testing "Barf on file/directory collision"
     (is (thrown-with-msg?
-          Exception #"File/directory collision: owl-house/characters \(directory\), spop/characters \(file\)"
-          (reconcile
-            [{:root ["owl-house"]
-              :fs {"characters" {"amity" [:file]}}}
+         Exception #"File/directory collision: owl-house/characters \(directory\), spop/characters \(file\)"
+         (reconcile
+          [{:root ["owl-house"]
+            :fs {"characters" {"amity" [:file]}}}
 
-             {:root ["spop"]
-              :fs {"characters" [:file]}}]))))
+           {:root ["spop"]
+            :fs {"characters" [:file]}}]))))
 
   (testing "Keep destination files in intermediate directories"
     (is (= {"characters" {"amity" [:file]
@@ -36,14 +36,14 @@
             "princesses" [:link ["spop" "princesses"]]}
 
            (reconcile
-             [{:root ["destination"]
-               :destination? true
-               :fs {"characters" {"amity" [:file]}
-                    "houses" {"owl" [:file]}}}
+            [{:root ["destination"]
+              :destination? true
+              :fs {"characters" {"amity" [:file]}
+                   "houses" {"owl" [:file]}}}
 
-              {:root ["spop"]
-               :fs {"characters" {"catra" [:file]}
-                    "princesses" {"she-ra" [:file]}}}]))))
+             {:root ["spop"]
+              :fs {"characters" {"catra" [:file]}
+                   "princesses" {"she-ra" [:file]}}}]))))
 
   (testing "Inflate an existing link into a directory when needed"
     (is (= {"characters"
@@ -55,25 +55,38 @@
                                       "heroes" "kipo"]]}}}
 
            (reconcile
-             [{:root ["destination"]
-               :destination? true
-               :fs {"characters" {"amity" [:file]
-                                  "heroes" [:link ["spop" "characters" "heroes"]]}}}
+            [{:root ["destination"]
+              :destination? true
+              :fs {"characters" {"amity" [:file]
+                                 "heroes" [:link ["spop" "characters" "heroes"]]}}}
 
-              {:root ["kipo"]
-               :fs {"characters" {"heroes" {"kipo" [:file]}}}}
+             {:root ["kipo"]
+              :fs {"characters" {"heroes" {"kipo" [:file]}}}}
 
-              {:root ["spop"]
-               :fs {"characters" {"catra" [:file]
-                                  "heroes" {"she-ra" [:file]}}}}]))))
+             {:root ["spop"]
+              :fs {"characters" {"catra" [:file]
+                                 "heroes" {"she-ra" [:file]}}}}]))))
 
   (testing "Handle when a link already exists in the destination"
     (is (= {"characters" {"amity" [:link ["owl-house" "characters" "amity"]]}}
 
            (reconcile
-             [{:root ["destination"]
-               :destination? true
-               :fs {"characters" {"amity" [:link "owl-house" "characters" "amity"]}}}
+            [{:root ["destination"]
+              :destination? true
+              :fs {"characters" {"amity" [:link "owl-house" "characters" "amity"]}}}
 
-              {:root ["owl-house"]
-               :fs {"characters" {"amity" [:file]}}}])))))
+             {:root ["owl-house"]
+              :fs {"characters" {"amity" [:file]}}}]))))
+
+  (testing "Handle when a file's content matches an existing file"
+    (is (= {"characters" {"amity" [:link ["owl-house" "characters" "amity"]]}}
+
+           (reconcile
+            [{:root ["destination"]
+              :destination? true
+              :fs {"characters" {"amity" [:file]}}
+              :contents {"destination" {"characters" {"amity" "luz"}}}}
+
+             {:root ["owl-house"]
+              :fs {"characters" {"amity" [:file]}}
+              :contents {"owl-house" {"characters" {"amity" "luz"}}}}])))))

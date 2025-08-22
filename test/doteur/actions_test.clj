@@ -8,36 +8,36 @@
     (is (= [[:delete ["characters" "angella"]]]
 
            (resolve-actions
-             {:destination-fs {"characters" {"angella" [:link
-                                                        ["spop"
-                                                         "characters"
-                                                         "angela"]]
-                                             "catra" [:link
-                                                      ["spop"
-                                                       "characters"
-                                                       "catra"]]}}
-              :reconciled-fs {"characters" {"catra" [:link
-                                                     ["spop"
-                                                      "characters"
-                                                      "catra"]]}}
-              :structures [{:root ["spop"]}]}))))
-
-  (testing "Leave unmanaged files alone"
-    (is (empty?
-          (resolve-actions
-            {:destination-fs {"characters" {"amity" [:file]
+            {:destination-fs {"characters" {"angella" [:link
+                                                       ["spop"
+                                                        "characters"
+                                                        "angela"]]
                                             "catra" [:link
                                                      ["spop"
                                                       "characters"
-                                                      "catra"]]
-                                            "kipo" [:link
-                                                     [""
-                                                      "kipo"]]}}
+                                                      "catra"]]}}
              :reconciled-fs {"characters" {"catra" [:link
                                                     ["spop"
                                                      "characters"
                                                      "catra"]]}}
              :structures [{:root ["spop"]}]}))))
+
+  (testing "Leave unmanaged files alone"
+    (is (empty?
+         (resolve-actions
+          {:destination-fs {"characters" {"amity" [:file]
+                                          "catra" [:link
+                                                   ["spop"
+                                                    "characters"
+                                                    "catra"]]
+                                          "kipo" [:link
+                                                  [""
+                                                   "kipo"]]}}
+           :reconciled-fs {"characters" {"catra" [:link
+                                                  ["spop"
+                                                   "characters"
+                                                   "catra"]]}}
+           :structures [{:root ["spop"]}]}))))
 
   (testing "Expand link into directory"
     (is (= [[:delete ["characters"]]
@@ -47,15 +47,29 @@
              ["owl-house" "characters" "amity"]]]
 
            (resolve-actions
-             {:destination-fs {"characters" [:link ["spop" "characters"]]}
-              :reconciled-fs {"characters" {"catra" [:link
-                                                     ["spop"
-                                                      "characters"
-                                                      "catra"]]
-                                            "amity" [:link
-                                                     ["owl-house"
-                                                      "characters"
-                                                      "amity"]]}}
-              :structures [{:root ["owl-house"]}
-                           {:root ["spop"]}]})))))
+            {:destination-fs {"characters" [:link ["spop" "characters"]]}
+             :reconciled-fs {"characters" {"catra" [:link
+                                                    ["spop"
+                                                     "characters"
+                                                     "catra"]]
+                                           "amity" [:link
+                                                    ["owl-house"
+                                                     "characters"
+                                                     "amity"]]}}
+             :structures [{:root ["owl-house"]}
+                          {:root ["spop"]}]}))))
+
+  (testing "Replace template files with link"
+    (is (= [[:delete ["characters" "amity"]]
+            [:link
+             ["characters" "amity"]
+             ["owl-house" "characters" "amity"]]]
+
+           (resolve-actions
+            {:destination-fs {"characters" {"amity" [:file]}}
+             :reconciled-fs {"characters" {"amity" [:link
+                                                    ["owl-house"
+                                                     "characters"
+                                                     "amity"]]}}
+             :structures [{:root ["owl-house"]}]})))))
 
