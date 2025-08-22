@@ -5,21 +5,21 @@
 (defn- map-tree-seq [m]
   (->> m
        (tree-seq
-         (fn [node]
-           (not (and (vector? node)
-                     (keyword? (first node)))))
-         (fn [node]
-           (cond
-             (map? node)
-             (map (fn [[k v]] (list [k] v))
-                  node)
+        (fn [node]
+          (not (and (vector? node)
+                    (keyword? (first node)))))
+        (fn [node]
+          (cond
+            (map? node)
+            (map (fn [[k v]] (list [k] v))
+                 node)
 
-             (and (list? node)
-                  (map? (second node)))
-             (map (fn [[k v]]
-                    (list (conj (first node) k)
-                          v))
-                  (second node)))))
+            (and (list? node)
+                 (map? (second node)))
+            (map (fn [[k v]]
+                   (list (conj (first node) k)
+                         v))
+                 (second node)))))
 
        (filter #(and (list? %)
                      (vector? (second %))))))
@@ -29,20 +29,29 @@
     (and (>= (count v) subv-len)
          (= subv (subvec v 0 subv-len)))))
 
-(defn- managed-link? [structures file-type]
+(defn- is-link? [file-type]
   (and (vector? file-type)
-       (= :link (first file-type))
+       (= :link (first file-type))))
+
+(defn- managed-link? [structures file-type]
+  (and (is-link? file-type)
        (let [link (second file-type)]
          (some #(vector-starts-with? link (:root %)) structures))))
 
-(defn- select-delete-actions [structures only-in-destination]
+(defn- replaced-with-link? [path file-type reconciled-fs]
+  (and (= [:file] file-type)
+       (is-link? (get-in reconciled-fs path))))
+
+(defn- select-delete-actions [structures only-in-destination reconciled-fs]
   (->> only-in-destination
        map-tree-seq
 
        (keep (fn [[path file-type]]
                ; We should only delete managed links
-               ; If it's a [:file] then it's unmanaged
-               (when (managed-link? structures file-type)
+               ; If it's a [:file] then it's unmanaged UNLESS the reconciled-fs turned it
+               ; into a link (eg: the existing file was an exact match, or was only a "template")
+               (when (or (managed-link? structures file-type)
+                         (replaced-with-link? path file-type reconciled-fs))
                  [:delete path])))))
 
 (defn- select-link-actions [only-in-reconciled]
@@ -59,5 +68,5 @@
   (let [[only-in-destination only-in-reconciled] (diff destination-fs
                                                        reconciled-fs)]
     (concat
-      (select-delete-actions structures only-in-destination)
-      (select-link-actions only-in-reconciled))))
+     (select-delete-actions structures only-in-destination reconciled-fs)
+     (select-link-actions only-in-reconciled))))
