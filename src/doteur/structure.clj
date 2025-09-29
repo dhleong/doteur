@@ -128,16 +128,31 @@
      :fs (into {} files)}))
 
 (comment
-  (def dotfiles (collect-at-path
-                 {}
-                 (io/file (System/getenv "HOME")
-                          ".dotfiles")))
+  (def dotfiles (let [structures-dir (io/file (System/getenv "HOME")
+                                              ".dotfiles")
+                      ignored-patterns (config/ignored-file-patterns
+                                        structures-dir)]
+                  (collect-at-path
+                   {:ignored-file-patterns ignored-patterns}
+                   structures-dir)))
 
   (def destination (build-relevant-at-file
                     dotfiles
                     (io/file (System/getenv "HOME"))))
 
   (dissoc (get-in destination [:fs ".config"]) "gcloud")
+  (get-in destination [:fs ".zshenv.local"])
+
+  (def reconciled-fs #_{:clj-kondo/ignore [:unresolved-namespace]}
+    (doteur.reconcile/reconcile
+     (cons (assoc destination :destination? true)
+           dotfiles)))
+
+  #_{:clj-kondo/ignore [:unresolved-namespace]}
+  (doteur.actions/resolve-actions
+   {:destination-fs (:fs destination)
+    :reconciled-fs reconciled-fs
+    :strutures dotfiles})
 
   (->> (keys (:fs destination))
        (map (fn [root-name]

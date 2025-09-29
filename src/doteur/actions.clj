@@ -42,6 +42,9 @@
   (and (= [:file] file-type)
        (is-link? (get-in reconciled-fs path))))
 
+(defn- relocated? [file-type]
+  (nil? (first file-type)))
+
 (defn- select-delete-actions [structures only-in-destination reconciled-fs]
   (->> only-in-destination
        map-tree-seq
@@ -51,7 +54,8 @@
                ; If it's a [:file] then it's unmanaged UNLESS the reconciled-fs turned it
                ; into a link (eg: the existing file was an exact match, or was only a "template")
                (when (or (managed-link? structures file-type)
-                         (replaced-with-link? path file-type reconciled-fs))
+                         (replaced-with-link? path file-type reconciled-fs)
+                         (relocated? file-type))
                  [:delete path])))))
 
 (defn- select-link-actions [only-in-reconciled]
@@ -64,9 +68,23 @@
                (when (= :link (first file-type))
                  [:link path (second file-type)])))))
 
+(defn- update-link-actions [both reconciled-fs]
+  (->> both
+       map-tree-seq
+
+       (keep (fn [[path file-type]]
+               (when (and (= :link (first file-type))
+                          ; nil in here means the root changed, eg:
+                          ; [:link [nil "characters" "amity"]]
+                          (some nil? (second file-type)))
+                 (assert (= :link (first (get-in reconciled-fs path))))
+                 ; Take the new path from the reconciled path
+                 [:link path (second (get-in reconciled-fs path))])))))
+
 (defn resolve-actions [{:keys [destination-fs reconciled-fs structures]}]
-  (let [[only-in-destination only-in-reconciled] (diff destination-fs
-                                                       reconciled-fs)]
+  (let [[only-in-destination only-in-reconciled both] (diff destination-fs
+                                                            reconciled-fs)]
     (concat
      (select-delete-actions structures only-in-destination reconciled-fs)
-     (select-link-actions only-in-reconciled))))
+     (select-link-actions only-in-reconciled)
+     (update-link-actions both reconciled-fs))))

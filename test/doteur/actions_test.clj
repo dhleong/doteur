@@ -71,5 +71,23 @@
                                                     ["owl-house"
                                                      "characters"
                                                      "amity"]]}}
-             :structures [{:root ["owl-house"]}]})))))
+             :structures [{:root ["owl-house"]}]}))))
+
+  (testing "Relocate links between structures"
+    (is (= [[:delete ["characters" "amity"]]
+            [:link
+             ["characters" "amity"]
+             ["owl-house" "characters" "amity"]]]
+
+           (resolve-actions
+            {:destination-fs {"characters" {"amity" [:link
+                                                     ["spop"
+                                                      "characters"
+                                                      "amity"]]}}
+             :reconciled-fs {"characters" {"amity" [:link
+                                                    ["owl-house"
+                                                     "characters"
+                                                     "amity"]]}}
+             :structures [{:root ["owl-house"]}
+                          {:root ["owl-house"]}]})))))
 

@@ -78,6 +78,20 @@
              {:root ["owl-house"]
               :fs {"characters" {"amity" [:file]}}}]))))
 
+  (testing "Handle files moving between sources already exists in the destination"
+    (is (= {"characters" {"amity" [:link ["owl-house" "characters" "amity"]]}}
+
+           (reconcile
+            [{:root ["destination"]
+              :destination? true
+              :fs {"characters" {"amity" [:link "spop" "characters" "amity"]}}}
+
+             {:root ["spop"]
+              :fs {"characters" {}}}
+
+             {:root ["owl-house"]
+              :fs {"characters" {"amity" [:file]}}}]))))
+
   (testing "Handle when a file's content matches an existing file"
     (is (= {"characters" {"amity" [:link ["owl-house" "characters" "amity"]]}}
 

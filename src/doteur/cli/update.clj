@@ -34,15 +34,15 @@
 
             ; Link in the file
             (Files/createSymbolicLink
-              (.toPath file)
-              (.toPath (io/file alt-path))
-              (make-array FileAttribute 0)))))
+             (.toPath file)
+             (.toPath (io/file alt-path))
+             (make-array FileAttribute 0)))))
 
 (defn- inflate-dest-path [destination-dir path]
   (.getAbsolutePath
-    (io/file
-      destination-dir
-      (path->file path))))
+   (io/file
+    destination-dir
+    (path->file path))))
 
 (defn- inflate-actions [destination-dir actions]
   (map (fn [[action-type path alt-path]]
@@ -55,21 +55,21 @@
 (defn command [{{:keys [home-dir envs-dir dry-run]} :opts}]
   (let [structures-dir (io/file envs-dir)
         base-ignored-patterns (config/ignored-file-patterns
-                                structures-dir)
+                               structures-dir)
         config {:ignored-file-patterns base-ignored-patterns}
         destination-dir (io/file home-dir)
 
         structures (structure/collect-at-path config structures-dir)
         destination (structure/build-relevant-at-file
-                      structures
-                      destination-dir)
+                     structures
+                     destination-dir)
         reconciled-fs (reconcile/reconcile
-                        (cons (assoc destination :destination? true)
-                              structures))
+                       (cons (assoc destination :destination? true)
+                             structures))
         actions (actions/resolve-actions
-                  {:destination-fs (:fs destination)
-                   :reconciled-fs reconciled-fs
-                   :structures structures})
+                 {:destination-fs (:fs destination)
+                  :reconciled-fs reconciled-fs
+                  :structures structures})
         actions (inflate-actions destination-dir actions)]
 
     (when dry-run
@@ -83,7 +83,7 @@
           (perform-action action)))
 
       (print-formatted
-        [:green "🎉 Up to date! 🎉"]))
+       [:green "🎉 Up to date! 🎉"]))
 
     (when dry-run
       (print-formatted [:yellow "*** THIS WAS A DRY RUN ***"]))))
