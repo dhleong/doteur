@@ -4,9 +4,9 @@ news
 licence
 license
 changelog.*
-.gitignore
+\.gitignore
 tags
-.gitmodules
+\.gitmodules
 .*\.sw.
-.gitattributes
-
+\.gitattributes
+\.dotignore

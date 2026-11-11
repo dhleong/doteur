@@ -91,8 +91,7 @@
 
 (defn collect-at-path [{:keys [ignored-file-patterns]} path]
   (let [ignored? (config/build-is-ignored ignored-file-patterns)
-        config {:ignored? ignored?}]
-    ; TODO We should respect local .dotignore files
+        base-config {:ignored? ignored?}]
     (->> (io/file path)
          (.listFiles)
          (filter directory?)
@@ -105,7 +104,11 @@
 
          (pmap
           (fn [root-file]
-            (let [root-path (file->path root-file)]
+            (let [root-path (file->path root-file)
+                  config (update base-config :ignored? config/compose-ignores
+                                 (config/build-is-ignored
+                                  (config/ignored-file-patterns
+                                   root-file)))]
               (when-not (in-disallow-list? root-path)
                 {:root root-path
                  :fs (build-fs-at-file config root-file)}))))
