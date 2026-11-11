@@ -18,12 +18,14 @@
   (and (.isDirectory file)
        (not (Files/isSymbolicLink (.toPath file)))))
 
-(defn- non-symlinked-file-seq [dir]
+(defn- non-symlinked-file-seq [ignored? dir]
   ; The default file-seq follows symlinks; we want to leave
   ; symlinks in-place, as-is!
+  ; Ignored directories are pruned entirely, so we don't waste
+  ; time walking eg: node_modules
   (tree-seq
    directory?
-   (fn [^File d] (seq (.listFiles d)))
+   (fn [^File d] (remove ignored? (.listFiles d)))
    dir))
 
 (defn- file->path [^File file]
@@ -80,9 +82,8 @@
               ignored? (constantly false)}} config
         root-len (count root)]
     (if (directory? root-file)
-      (->> (non-symlinked-file-seq root-file)
+      (->> (non-symlinked-file-seq ignored? root-file)
            (remove directory?)
-           (remove ignored?)
            (reduce
             (partial assoc-file-in-fs root-len)
             {}))
