@@ -39,6 +39,7 @@
               alias-node])
 
             (hooks/map-node? alias-node)
+            #_{:clj-kondo/ignore [:unused-binding]}
             (let [{:keys [src alias attrs body]} (hooks/sexpr alias-node)
                   ;; workaround as can't seem to (get) using a token-node
                   ;; and there's no update-keys (yet) in sci apparently
@@ -55,14 +56,14 @@
   (let [[sym _opts binding-vec & body] (rest (:children node))]
     {:node
      (hooks/list-node
-       (list
-         (hooks/token-node 'def)
-         sym
-         (hooks/list-node
-           (list*
-             (hooks/token-node 'fn)
-             binding-vec
-             body))))}))
+      (list
+       (hooks/token-node 'def)
+       sym
+       (hooks/list-node
+        (list*
+         (hooks/token-node 'fn)
+         binding-vec
+         body))))}))
 
 (defn -def-impl
   [{:keys [node]} core-macro-sym]
@@ -76,9 +77,9 @@
 
         rewritten
         (hooks/list-node
-          [(hooks/token-node core-macro-sym)
-           sym+meta
-           init-expr])]
+         [(hooks/token-node core-macro-sym)
+          sym+meta
+          init-expr])]
 
     #_(println "old node:" node)
     #_(println "new node:" rewritten)
