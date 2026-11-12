@@ -52,7 +52,7 @@
              :link [:link path (path->file alt-path)])))
        actions))
 
-(defn command [{{:keys [home-dir envs-dir dry-run]} :opts}]
+(defn command [{{:keys [home-dir envs-dir dry-run deep]} :opts}]
   (let [structures-dir (io/file envs-dir)
         base-ignored-patterns (config/ignored-file-patterns
                                structures-dir)
@@ -61,6 +61,7 @@
 
         structures (structure/collect-at-path config structures-dir)
         destination (structure/build-relevant-at-file
+                     {:deep? deep}
                      structures
                      destination-dir)
         reconciled-fs (reconcile/reconcile

@@ -18,6 +18,8 @@
                            :ref "<path>"
                            :default default-home
                            :default-desc "$HOME"}
+                :deep {:desc "Deeper search for cleaning up old files"
+                       :coerce :boolean}
                 :dry-run {:desc "Don't touch the filesystem"
                           :alias :d
                           :coerce :boolean}

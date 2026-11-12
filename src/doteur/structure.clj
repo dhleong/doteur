@@ -18,6 +18,11 @@
   (and (.isDirectory file)
        (not (Files/isSymbolicLink (.toPath file)))))
 
+(defn- deep-merge [& values]
+  (if (every? map? values)
+    (apply merge-with deep-merge values)
+    (last values)))
+
 (defn- non-symlinked-file-seq [ignored? dir]
   ; The default file-seq follows symlinks; we want to leave
   ; symlinks in-place, as-is!
@@ -115,17 +120,49 @@
                  :fs (build-fs-at-file config root-file)}))))
          (keep identity))))
 
-(defn build-relevant-at-file [source-structures target-root-file]
-  (let [relevant-root-dirs (->> source-structures
-                                (mapcat (comp keys :fs))
-                                (into #{}))
-        files (->> relevant-root-dirs
+(defn- build-relevant-fs
+  "Like build-fs-at-file, but only descends into directories that also exist in
+  `combined-source-fs`, to avoid walking huge dirs that we wouldn't try to
+  link anything into anyway (eg node_modules)."
+  [combined-source-fs root ^File file]
+  (if (and (map? combined-source-fs)
+           (directory? file))
+    (reduce-kv
+     (fn [fs file-name child-source-fs]
+       (let [child-fs (build-relevant-fs
+                       child-source-fs
+                       (conj root file-name)
+                       (io/file file file-name))]
+         (cond-> fs
+           (some? child-fs) (assoc file-name child-fs))))
+
+     {}
+     combined-source-fs)
+
+    ; Not a directory; reuse build-fs-at-file
+    (build-fs-at-file {:root root} file)))
+
+(defn build-relevant-at-file [{:keys [deep?]} source-structures target-root-file]
+  (let [combined-source-fs (apply deep-merge (map :fs source-structures))
+        root-path (file->path target-root-file)
+        build-fs (if deep?
+                   (fn build-fs-deep [root-dir-name _child-source-fs]
+                     (build-fs-at-file
+                      {:root (conj root-path root-dir-name)}
+                      (io/file target-root-file root-dir-name)))
+
+                   (fn build-fs-shallow [root-dir-name child-source-fs]
+                     (build-relevant-fs
+                      child-source-fs
+                      (conj root-path root-dir-name)
+                      (io/file target-root-file root-dir-name))))
+        files (->> combined-source-fs
                    (pmap
-                    (fn [root-dir-name]
+                    (fn [[root-dir-name child-source-fs]]
                       [root-dir-name
-                       (build-fs-at-file
-                        {:root (conj (file->path target-root-file) root-dir-name)}
-                        (io/file target-root-file root-dir-name))]))
+                       (build-fs
+                        root-dir-name
+                        child-source-fs)]))
                    (filter (fn [[_root-dir-name fs]]
                              (some? fs))))]
     {:root (file->path target-root-file)
@@ -141,6 +178,7 @@
                    structures-dir)))
 
   (def destination (build-relevant-at-file
+                    {}
                     dotfiles
                     (io/file (System/getenv "HOME"))))
 
